@@ -3,8 +3,9 @@
 // Author: Anthony Garand
 // Improvements by German M. Bravo (Kronuz) and Ruud Kamphuis (ruudk)
 // Improvements by Leonardo C. Daronco (daronco)
+// Improvements by Manuel Guilbault (manuel-guilbault)
 // Created: 2/14/2011
-// Date: 2/12/2012
+// Date: 25/07/2013
 // Website: http://labs.anthonygarand.com/sticky
 // Description: Makes an element on the page stick on the screen as you scroll
 //       It will only set the 'top' and 'position' of your element, you
@@ -23,6 +24,29 @@
     $document = $(document),
     sticked = [],
     windowHeight = $window.height(),
+    setNewTop = function(s, newTop) {
+        if (s.currentTop != newTop) {
+            s.stickyElement
+              .css('position', 'fixed')
+              .css('top', newTop);
+
+            if (typeof s.getWidthFrom !== 'undefined') {
+                s.stickyElement.css('width', $(s.getWidthFrom).width());
+            }
+
+            s.stickyElement.parent().addClass(s.className);
+            s.currentTop = newTop;
+        }
+    },
+    unstick = function(s) {
+      if (s.currentTop !== null) {
+        s.stickyElement
+          .css('position', '')
+          .css('top', '');
+        s.stickyElement.parent().removeClass(s.className);
+        s.currentTop = null;
+      }
+    },
     scroller = function() {
       var scrollTop = $window.scrollTop(),
         documentHeight = $document.height(),
@@ -32,36 +56,35 @@
       for (var i = 0; i < sticked.length; i++) {
         var s = sticked[i],
           elementTop = s.stickyWrapper.offset().top,
-          etse = elementTop - s.topSpacing - extra;
+          elementHeight = s.stickyElement.outerHeight(true);
 
-        if (scrollTop <= etse) {
-          if (s.currentTop !== null) {
-            s.stickyElement
-              .css('position', '')
-              .css('top', '');
-            s.stickyElement.parent().removeClass(s.className);
-            s.currentTop = null;
+        if (elementHeight > windowHeight) {
+          var scrollBottom = scrollTop + windowHeight,
+            etse = (elementTop + elementHeight) - s.topSpacing - extra;
+
+          if (scrollBottom <= etse) {
+            unstick(s);
+          }
+          else {
+            var newTop = windowHeight - elementHeight - s.bottomSpacing - extra;
+            setNewTop(s, newTop);
           }
         }
         else {
-          var newTop = documentHeight - s.stickyElement.outerHeight()
-            - s.topSpacing - s.bottomSpacing - scrollTop - extra;
-          if (newTop < 0) {
-            newTop = newTop + s.topSpacing;
-          } else {
-            newTop = s.topSpacing;
+          var etse = elementTop - s.topSpacing - extra;
+
+          if (scrollTop <= etse) {
+            unstick(s);
           }
-          if (s.currentTop != newTop) {
-            s.stickyElement
-              .css('position', 'fixed')
-              .css('top', newTop);
-
-            if (typeof s.getWidthFrom !== 'undefined') {
-              s.stickyElement.css('width', $(s.getWidthFrom).width());
+          else {
+            var newTop = documentHeight - s.stickyElement.outerHeight()
+                         - s.topSpacing - s.bottomSpacing - scrollTop - extra;
+            if (newTop < 0) {
+              newTop = newTop + s.topSpacing;
+            } else {
+              newTop = s.topSpacing;
             }
-
-            s.stickyElement.parent().addClass(s.className);
-            s.currentTop = newTop;
+            setNewTop(s, newTop);
           }
         }
       }
